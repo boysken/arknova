@@ -1,0 +1,948 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ark Nova Dashboard</title>
+    <meta name="description" content="아크노바 시즌 7 진행 현황과 시즌 1-6 아카이브를 한 번에 보는 모바일 친화형 대시보드입니다.">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#355c3b">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Ark Nova Dashboard">
+    <meta property="og:description" content="시즌 7 중간 순위 집계표와 시즌 아카이브를 한 번에 보는 아크노바 대시보드">
+    <meta property="og:locale" content="ko_KR">
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="Ark Nova Dashboard">
+    <meta property="twitter:description" content="시즌 7 중간 순위 집계표와 시즌 아카이브를 한 번에 보는 아크노바 대시보드">
+    <style>
+        :root {
+            --panel: rgba(255, 251, 245, 0.82);
+            --panel-strong: #fffaf1;
+            --ink: #1f2a1f;
+            --muted: #657064;
+            --line: rgba(47, 70, 50, 0.14);
+            --forest: #355c3b;
+            --leaf: #6d9f71;
+            --gold: #d6a44c;
+            --accent: #b75f3c;
+            --shadow: 0 24px 70px rgba(39, 52, 35, 0.16);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "Noto Sans KR", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(214, 164, 76, 0.22), transparent 28%),
+                radial-gradient(circle at top right, rgba(109, 159, 113, 0.22), transparent 24%),
+                linear-gradient(180deg, #f8f2e8 0%, #efe7da 100%);
+            min-height: 100vh;
+        }
+
+        .shell {
+            width: min(1180px, calc(100% - 32px));
+            margin: 32px auto 48px;
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 36px;
+            border-radius: 28px;
+            background: linear-gradient(135deg, rgba(53, 92, 59, 0.96), rgba(31, 42, 31, 0.93));
+            color: #f9f3ea;
+            box-shadow: var(--shadow);
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            inset: auto -60px -80px auto;
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(214, 164, 76, 0.3), transparent 68%);
+        }
+
+        .eyebrow {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255, 250, 241, 0.12);
+            color: #ffe7bd;
+            font-size: 12px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 14px 0 10px;
+            font-size: clamp(32px, 5vw, 56px);
+            line-height: 0.95;
+        }
+
+        .hero p {
+            max-width: 760px;
+            margin: 0;
+            color: rgba(249, 243, 234, 0.82);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .tab-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 22px;
+        }
+
+        .tab-button {
+            border: 1px solid rgba(255, 250, 241, 0.2);
+            background: rgba(255, 250, 241, 0.1);
+            color: #f9f3ea;
+            min-height: 46px;
+            padding: 0 16px;
+            border-radius: 999px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+        }
+
+        .tab-button.active {
+            background: #f7e8c6;
+            color: #25412b;
+            border-color: transparent;
+        }
+
+        .tab-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .summary-grid,
+        .player-grid,
+        .map-grid,
+        .archive-summary-grid,
+        .season-grid {
+            display: grid;
+            gap: 18px;
+            margin-top: 22px;
+        }
+
+        .summary-grid,
+        .archive-summary-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .player-grid,
+        .map-grid,
+        .season-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            padding: 22px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .metric-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+        }
+
+        .metric-value {
+            margin-top: 10px;
+            font-size: clamp(22px, 4vw, 34px);
+            font-weight: 700;
+        }
+
+        .section {
+            margin-top: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .section-title {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .player-card,
+        .map-card,
+        .season-card,
+        .midseason-card {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(255, 250, 241, 0.95), rgba(248, 241, 231, 0.92));
+        }
+
+        .player-card::before,
+        .map-card::before,
+        .season-card::before,
+        .midseason-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto auto 0;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, var(--forest), var(--leaf), var(--gold));
+        }
+
+        .player-top,
+        .map-top,
+        .season-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .player-name,
+        .map-name,
+        .season-name {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .season-subtitle {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .map-pill,
+        .status-pill,
+        .usage-pill,
+        .winner-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .map-pill,
+        .usage-pill {
+            background: rgba(109, 159, 113, 0.14);
+            color: var(--forest);
+        }
+
+        .status-pill {
+            background: rgba(183, 95, 60, 0.14);
+            color: var(--accent);
+        }
+
+        .winner-chip {
+            background: rgba(214, 164, 76, 0.16);
+            color: #8a5a14;
+        }
+
+        .stats,
+        .map-stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .stat-box {
+            padding: 14px;
+            border-radius: 18px;
+            background: var(--panel-strong);
+            border: 1px solid rgba(53, 92, 59, 0.08);
+        }
+
+        .stat-box strong {
+            display: block;
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .stat-box span {
+            display: block;
+            margin-top: 10px;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .wide {
+            grid-column: span 3;
+        }
+
+        .mini-list {
+            margin: 10px 0 0;
+            padding-left: 18px;
+            color: var(--ink);
+            line-height: 1.7;
+        }
+
+        .ranking-list {
+            display: grid;
+            gap: 10px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .ranking-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: var(--panel-strong);
+            border: 1px solid rgba(53, 92, 59, 0.08);
+        }
+
+        .ranking-item.pending {
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        .winner-strip {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .midseason-overview {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .midseason-metric {
+            padding: 16px;
+            border-radius: 18px;
+            background: var(--panel-strong);
+            border: 1px solid rgba(53, 92, 59, 0.08);
+        }
+
+        .midseason-metric strong {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .midseason-metric span {
+            display: block;
+            margin-top: 10px;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .rank-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .rank-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(53, 92, 59, 0.08);
+            color: var(--forest);
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .rank-chip.pending {
+            background: rgba(101, 112, 100, 0.1);
+            color: var(--muted);
+        }
+
+        .recent-game-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: rgba(214, 164, 76, 0.14);
+            color: #7a5114;
+            font-weight: 700;
+        }
+
+        .rank-table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow: hidden;
+            border-radius: 18px;
+            background: var(--panel-strong);
+        }
+
+        .rank-table th,
+        .rank-table td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid rgba(45, 68, 49, 0.08);
+            vertical-align: top;
+        }
+
+        .rank-table th {
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .rank-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .rank-badge {
+            display: inline-flex;
+            min-width: 44px;
+            justify-content: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(216, 165, 80, 0.18);
+            color: #8b5a16;
+            font-weight: 700;
+        }
+
+        .history-line {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+            word-break: keep-all;
+        }
+
+        .footer-note {
+            margin-top: 18px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        @media (max-width: 900px) {
+            .summary-grid,
+            .player-grid,
+            .map-grid,
+            .archive-summary-grid,
+            .season-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .midseason-overview {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .shell {
+                width: min(100% - 20px, 100%);
+                margin: 20px auto 36px;
+            }
+
+            .hero,
+            .card {
+                padding: 18px;
+                border-radius: 20px;
+            }
+
+            .stats,
+            .map-stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .wide {
+                grid-column: span 2;
+            }
+
+            .rank-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .midseason-overview {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <section class="hero">
+        <div class="eyebrow">Ark Nova Unified Dashboard</div>
+        <h1>아크노바 시즌 대시보드</h1>
+        <p>한 파일 안에서 시즌 7 진행 현황과 시즌 1부터 시즌 6까지의 기록 조회를 모두 볼 수 있게 합쳤습니다. 지금은 시즌 7 지도 선택 상태와 과거 시즌 순위 흐름을 함께 확인할 수 있습니다.</p>
+        <div class="tab-bar">
+            <button class="tab-button active" data-tab="live">시즌 7 현황</button>
+            <button class="tab-button" data-tab="archive">시즌 1-6 아카이브</button>
+        </div>
+    </section>
+
+    <section id="livePanel" class="tab-panel active">
+        <section class="section">
+            <div class="section-header">
+                <h2 class="section-title">시즌 7 중간 순위 집계표</h2>
+                <div class="hint">12게임 기준, 지도별 등수 기록으로 누적 관리</div>
+            </div>
+            <div class="card midseason-card">
+                <div class="midseason-overview" id="midseasonOverview"></div>
+                <div class="recent-game-banner" id="recentGameBanner"></div>
+                <table class="rank-table">
+                    <thead>
+                        <tr>
+                            <th>중간 순위</th>
+                            <th>플레이어</th>
+                            <th>이번 경기</th>
+                            <th>평균 등수</th>
+                            <th>1~4위 집계</th>
+                            <th>게임별 지도/등수</th>
+                        </tr>
+                    </thead>
+                    <tbody id="midseasonTableBody"></tbody>
+                </table>
+                <div class="footer-note">남은 게임은 대기로 표시되고, 완료된 게임만 평균 등수와 집계에 반영됩니다.</div>
+            </div>
+        </section>
+
+        <section class="summary-grid section" id="summaryGrid"></section>
+
+        <section class="section">
+            <div class="section-header">
+                <h2 class="section-title">플레이어 현황</h2>
+                <div class="hint">현재 입력된 데이터만 반영</div>
+            </div>
+            <div class="player-grid" id="playerGrid"></div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <h2 class="section-title">지도 분석</h2>
+                <div class="hint">현재는 선택 현황 중심, 이후 결과 비교로 확장 가능</div>
+            </div>
+            <div class="map-grid" id="mapGrid"></div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <h2 class="section-title">현재 순위</h2>
+                <div class="hint">이번 게임 점수 기준 실시간 순위</div>
+            </div>
+            <div class="card">
+                <ol class="ranking-list" id="rankingList"></ol>
+                <div class="footer-note">시즌 7 누적 순위는 상단 집계표에서 관리하고, 이 영역은 현재 게임 결과만 보여줍니다.</div>
+            </div>
+        </section>
+    </section>
+
+    <section id="archivePanel" class="tab-panel">
+        <section class="archive-summary-grid section" id="archiveSummaryGrid"></section>
+
+        <section class="section">
+            <div class="section-header">
+                <h2 class="section-title">시즌 아카이브</h2>
+                <div class="hint">최종 순위 + 회차별 등수 흐름</div>
+            </div>
+            <div class="season-grid" id="seasonGrid"></div>
+        </section>
+    </section>
+</div>
+
+<script>
+const session = {
+    sessionName: "Season 7 Current Game",
+    playedDate: "2026-04-17",
+    expansions: ["BASE_GAME"],
+    players: [
+        { name: "MagicianJang", zooMapName: "제도판", finalScore: 127, conservationPoints: 30, appeal: 61, reputation: 15, income: 2, breakCount: 2, note: "이미지 기준 반영." },
+        { name: "mindbomb", zooMapName: "구조기지", finalScore: 106, conservationPoints: 27, appeal: 49, reputation: 12, income: 27, breakCount: 0, note: "이미지 기준 반영." },
+        { name: "aguagu1234", zooMapName: "동굴", finalScore: 74, conservationPoints: 19, appeal: 41, reputation: 11, income: 3, breakCount: 1, note: "이미지 기준 반영." },
+        { name: "Boysken", zooMapName: "석호", finalScore: 81, conservationPoints: 17, appeal: 54, reputation: 6, income: 0, breakCount: 0, note: "이미지 기준 반영." }
+    ]
+};
+
+const season7Plan = {
+    season: 7,
+    totalGames: 12,
+    games: [
+        {
+            gameNumber: 1,
+            label: session.sessionName,
+            playedDate: session.playedDate,
+            results: [...session.players]
+                .sort((a, b) => (b.finalScore ?? -1) - (a.finalScore ?? -1))
+                .map((player, index) => ({
+                    playerName: player.name,
+                    zooMapName: player.zooMapName,
+                    rank: index + 1
+                }))
+        },
+        ...Array.from({ length: 11 }, (_, index) => ({
+            gameNumber: index + 2,
+            label: `Game ${index + 2}`,
+            playedDate: null,
+            results: []
+        }))
+    ]
+};
+
+const seasons = [
+    {
+        season: 6,
+        label: "아크 6시즌",
+        tag: "확장 포함",
+        finalOrder: ["재영", "형주", "규남", "명철"],
+        rankings: {
+            "재영": [2, 1, 4, 2, 2, 2, 1, 1, 1],
+            "형주": [3, 4, 1, 1, 4, 1, 4, 3, 3],
+            "규남": [1, 3, 2, 3, 1, 3, 2, 2, 4],
+            "명철": [4, 2, 3, 4, 3, 4, 3, 4, 2]
+        }
+    },
+    {
+        season: 5,
+        label: "아크 5시즌",
+        tag: "기본판",
+        finalOrder: ["규남", "형주", "재영", "명철"],
+        rankings: {
+            "규남": [4, 1, 3, 1, 4, 1, 3, 2, 1, 2, 2, 1],
+            "형주": [1, 4, 2, 2, 1, 2, 2, 4, 3, 1, 1, 2],
+            "재영": [2, 2, 1, 4, 3, 4, 1, 1, 2, 3, 4, 3],
+            "명철": [3, 3, 4, 3, 2, 3, 4, 3, 4, 4, 3, 4]
+        }
+    },
+    {
+        season: 4,
+        label: "아크 4시즌",
+        tag: "기본판",
+        finalOrder: ["재영", "명철", "규남", "형주"],
+        rankings: {
+            "재영": [1, 1, 1, 3, 3, 4, 2, 4, 4, 3, 1, 2],
+            "명철": [2, 3, 4, 4, 1, 2, 3, 2, 2, 1, 2, 1],
+            "규남": [4, 2, 3, 2, 4, 1, 1, 3, 1, 2, 3, 3],
+            "형주": [3, 4, 2, 1, 2, 3, 4, 1, 3, 4, 4, 4]
+        }
+    },
+    {
+        season: 3,
+        label: "아크 3시즌",
+        tag: "기본판",
+        finalOrder: ["형주", "규남", "명철", "재영"],
+        rankings: {
+            "형주": [2, 2, 1, 1, 2, 3, 2, 2, 2, 1, 3, 1],
+            "규남": [1, 3, 3, 2, 1, 1, 3, 1, 4, 3, 2, 2],
+            "명철": [4, 1, 4, 4, 4, 4, 1, 4, 3, 4, 1, 3],
+            "재영": [3, 4, 2, 3, 3, 2, 4, 3, 1, 2, 4, 4]
+        }
+    },
+    {
+        season: 2,
+        label: "아크 2시즌",
+        tag: "기본판",
+        finalOrder: ["형주", "재영", "명철", "규남"],
+        rankings: {
+            "형주": [1, 1, 2, 1, 3, 4, 4, 1, 2, 4, 4, 1],
+            "재영": [3, 2, 3, 3, 2, 1, 1, 2, 3, 1, 2, 4],
+            "명철": [4, 4, 1, 4, 1, 2, 3, 3, 1, 3, 3, 3],
+            "규남": [2, 3, 4, 2, 4, 3, 2, 4, 4, 2, 1, 1]
+        }
+    },
+    {
+        season: 1,
+        label: "아크 1시즌",
+        tag: "기본판",
+        finalOrder: ["재영", "형주", "명철", "규남"],
+        rankings: {
+            "재영": [2, 1, 1, 4, 1, 1, 4, 4, 2, 1, 1, 3],
+            "형주": [4, 4, 4, 1, 3, 2, 1, 1, 1, 2, 3, 4],
+            "명철": [1, 2, 3, 3, 2, 4, 3, 3, 4, 3, 4, 1],
+            "규남": [3, 3, 2, 2, 4, 3, 2, 2, 3, 4, 2, 2]
+        }
+    }
+];
+
+const display = (value) => value === null ? "-" : value;
+const hasAnyScore = session.players.some((player) => player.finalScore !== null);
+const averageRank = (values) => (values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(2);
+
+const season7Players = session.players.map((player) => player.name);
+const season7Records = season7Players.map((playerName) => {
+    const history = season7Plan.games.map((game) => {
+        const result = game.results.find((entry) => entry.playerName === playerName);
+        return result
+            ? {
+                gameNumber: game.gameNumber,
+                zooMapName: result.zooMapName,
+                rank: result.rank
+            }
+            : {
+                gameNumber: game.gameNumber,
+                zooMapName: null,
+                rank: null
+            };
+    });
+
+    const completedRanks = history.filter((item) => item.rank !== null).map((item) => item.rank);
+    const rankCounts = [1, 2, 3, 4].map((rank) => completedRanks.filter((value) => value === rank).length);
+
+    return {
+        playerName,
+        completedGames: completedRanks.length,
+        averageRank: completedRanks.length ? averageRank(completedRanks) : "-",
+        sortAverageRank: completedRanks.length ? Number(averageRank(completedRanks)) : Number.POSITIVE_INFINITY,
+        rankCounts,
+        history
+    };
+}).sort((a, b) =>
+    a.sortAverageRank - b.sortAverageRank ||
+    b.rankCounts[0] - a.rankCounts[0] ||
+    b.rankCounts[1] - a.rankCounts[1] ||
+    a.playerName.localeCompare(b.playerName)
+);
+
+const summaryItems = [
+    { label: "세션", value: session.sessionName },
+    { label: "플레이 날짜", value: session.playedDate },
+    { label: "확장판", value: session.expansions.join(", ") },
+    { label: "입력 상태", value: hasAnyScore ? "부분 입력" : "지도만 입력" }
+];
+
+const mapAnalysis = session.players.reduce((acc, player) => {
+    const key = player.zooMapName ?? "미입력";
+    if (!acc[key]) {
+        acc[key] = { mapName: key, players: [], finalScores: [] };
+    }
+    acc[key].players.push(player.name);
+    if (player.finalScore !== null) {
+        acc[key].finalScores.push(player.finalScore);
+    }
+    return acc;
+}, {});
+
+const mapCards = Object.values(mapAnalysis).map((map) => ({
+    ...map,
+    usageCount: map.players.length,
+    averageScore: map.finalScores.length
+        ? (map.finalScores.reduce((sum, value) => sum + value, 0) / map.finalScores.length).toFixed(2)
+        : "pending"
+}));
+
+document.getElementById("summaryGrid").innerHTML = summaryItems.map((item) => `
+    <article class="card">
+        <div class="metric-label">${item.label}</div>
+        <div class="metric-value">${item.value}</div>
+    </article>
+`).join("");
+
+document.getElementById("playerGrid").innerHTML = session.players.map((player) => `
+    <article class="card player-card">
+        <div class="player-top">
+            <div>
+                <h3 class="player-name">${player.name}</h3>
+                <div class="map-pill">지도 ${player.zooMapName ?? "미입력"}</div>
+            </div>
+            <div class="status-pill">${player.finalScore === null ? "결과 대기" : "입력 완료"}</div>
+        </div>
+        <div class="stats">
+            <div class="stat-box"><strong>최종 점수</strong><span>${display(player.finalScore)}</span></div>
+            <div class="stat-box"><strong>보전(CP)</strong><span>${display(player.conservationPoints)}</span></div>
+            <div class="stat-box"><strong>매력도</strong><span>${display(player.appeal)}</span></div>
+            <div class="stat-box"><strong>평판</strong><span>${display(player.reputation)}</span></div>
+            <div class="stat-box"><strong>수입</strong><span>${display(player.income)}</span></div>
+            <div class="stat-box"><strong>브레이크</strong><span>${display(player.breakCount)}</span></div>
+            <div class="stat-box wide"><strong>메모</strong><span>${player.note ?? (player.finalScore === null ? "추후 진행 상황과 최종 결과를 여기에 계속 반영" : "입력 완료")}</span></div>
+        </div>
+    </article>
+`).join("");
+
+document.getElementById("mapGrid").innerHTML = mapCards.map((map) => `
+    <article class="card map-card">
+        <div class="map-top">
+            <div>
+                <h3 class="map-name">${map.mapName}</h3>
+                <div class="usage-pill">사용 횟수 ${map.usageCount}</div>
+            </div>
+            <div class="status-pill">평균 점수 ${map.averageScore}</div>
+        </div>
+        <div class="map-stats">
+            <div class="stat-box"><strong>선택 플레이어</strong><span>${map.players.length}</span></div>
+            <div class="stat-box"><strong>점수 입력 수</strong><span>${map.finalScores.length}</span></div>
+            <div class="stat-box"><strong>현재 상태</strong><span>${map.finalScores.length ? "비교 가능" : "대기"}</span></div>
+            <div class="stat-box wide">
+                <strong>이 지도 사용 플레이어</strong>
+                <ul class="mini-list">${map.players.map((player) => `<li>${player}</li>`).join("")}</ul>
+            </div>
+        </div>
+    </article>
+`).join("");
+
+const rankingList = document.getElementById("rankingList");
+rankingList.innerHTML = !hasAnyScore
+    ? `
+        <li class="ranking-item pending"><span>1위</span><span>pending</span></li>
+        <li class="ranking-item pending"><span>2위</span><span>pending</span></li>
+        <li class="ranking-item pending"><span>3위</span><span>pending</span></li>
+        <li class="ranking-item pending"><span>4위</span><span>pending</span></li>
+      `
+    : [...session.players]
+        .sort((a, b) => (b.finalScore ?? -1) - (a.finalScore ?? -1))
+        .map((player, index) => `
+            <li class="ranking-item">
+                <span>${index + 1}위 ${player.name}</span>
+                <strong>${display(player.finalScore)}</strong>
+            </li>
+        `)
+        .join("");
+
+const winnerCounts = seasons.map((season) => season.finalOrder[0]).reduce((acc, player) => {
+    acc[player] = (acc[player] ?? 0) + 1;
+    return acc;
+}, {});
+
+const archiveSummaryItems = [
+    { label: "현재 시즌", value: "시즌 7 진행 중" },
+    { label: "조회 시즌", value: `시즌 ${Math.min(...seasons.map((season) => season.season))}-${Math.max(...seasons.map((season) => season.season))}` },
+    { label: "누적 시즌 수", value: String(seasons.length) },
+    { label: "최다 우승", value: Object.entries(winnerCounts).sort((a, b) => b[1] - a[1])[0].join(" ") + "회" }
+];
+
+const completedSeason7Games = season7Plan.games.filter((game) => game.results.length > 0).length;
+const remainingSeason7Games = season7Plan.totalGames - completedSeason7Games;
+const season7Leader = season7Records[0];
+const latestCompletedGame = [...season7Plan.games].reverse().find((game) => game.results.length > 0);
+
+document.getElementById("recentGameBanner").innerHTML = latestCompletedGame
+    ? `<span>이번 경기 반영 완료 · G${latestCompletedGame.gameNumber} · ${latestCompletedGame.playedDate ?? "날짜 미입력"}</span><span>${latestCompletedGame.label}</span>`
+    : `<span>아직 반영된 경기 없음</span><span>대기 중</span>`;
+
+document.getElementById("midseasonOverview").innerHTML = [
+    { label: "총 경기 수", value: `${season7Plan.totalGames}게임` },
+    { label: "완료 경기", value: `${completedSeason7Games}게임` },
+    { label: "남은 경기", value: `${remainingSeason7Games}게임` },
+    { label: "현재 선두", value: `${season7Leader.playerName} (${season7Leader.averageRank}위)` }
+].map((item) => `
+    <div class="midseason-metric">
+        <strong>${item.label}</strong>
+        <span>${item.value}</span>
+    </div>
+`).join("");
+
+document.getElementById("midseasonTableBody").innerHTML = season7Records.map((player, index) => `
+    <tr>
+        <td><span class="rank-badge">${index + 1}위</span></td>
+        <td>${player.playerName}</td>
+        <td>${latestCompletedGame && player.history[latestCompletedGame.gameNumber - 1].rank !== null ? `${player.history[latestCompletedGame.gameNumber - 1].rank}위` : "-"}</td>
+        <td>${player.averageRank}</td>
+        <td>
+            <div class="rank-chip-row">
+                ${player.rankCounts.map((count, rankIndex) => `<span class="rank-chip">${rankIndex + 1}위 ${count}회</span>`).join("")}
+            </div>
+        </td>
+        <td>
+            <div class="rank-chip-row">
+                ${player.history.map((entry) => entry.rank === null
+                    ? `<span class="rank-chip pending">G${entry.gameNumber} 대기</span>`
+                    : `<span class="rank-chip">G${entry.gameNumber} ${entry.zooMapName} · ${entry.rank}위</span>`
+                ).join("")}
+            </div>
+        </td>
+    </tr>
+`).join("");
+
+document.getElementById("archiveSummaryGrid").innerHTML = archiveSummaryItems.map((item) => `
+    <article class="card">
+        <div class="metric-label">${item.label}</div>
+        <div class="metric-value">${item.value}</div>
+    </article>
+`).join("");
+
+document.getElementById("seasonGrid").innerHTML = seasons.map((season) => {
+    const players = Object.keys(season.rankings);
+    return `
+        <article class="card season-card">
+            <div class="season-top">
+                <div>
+                    <h3 class="season-name">${season.label}</h3>
+                    <div class="season-subtitle">${season.tag} · ${Object.values(season.rankings)[0].length}회 기록</div>
+                </div>
+                <div class="status-pill">기록 완료</div>
+            </div>
+            <div class="winner-strip">
+                ${season.finalOrder.map((player, index) => `<span class="winner-chip">${index + 1}위 ${player}</span>`).join("")}
+            </div>
+            <table class="rank-table">
+                <thead>
+                    <tr>
+                        <th>플레이어</th>
+                        <th>최종 순위</th>
+                        <th>평균 등수</th>
+                        <th>회차별 등수 흐름</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${players.map((player) => `
+                        <tr>
+                            <td>${player}</td>
+                            <td><span class="rank-badge">${season.finalOrder.indexOf(player) + 1}위</span></td>
+                            <td>${averageRank(season.rankings[player])}</td>
+                            <td><div class="history-line">${season.rankings[player].join(" · ")}</div></td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+            <div class="footer-note">회차별 등수 흐름은 왼쪽부터 순서대로 기록했습니다.</div>
+        </article>
+    `;
+}).join("");
+
+const tabButtons = document.querySelectorAll(".tab-button");
+const tabPanels = {
+    live: document.getElementById("livePanel"),
+    archive: document.getElementById("archivePanel")
+};
+
+tabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+        const target = button.dataset.tab;
+        tabButtons.forEach((item) => item.classList.toggle("active", item === button));
+        Object.entries(tabPanels).forEach(([key, panel]) => {
+            panel.classList.toggle("active", key === target);
+        });
+    });
+});
+</script>
+</body>
+</html>
